@@ -1,10 +1,10 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, NgZone, OnInit } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { UsuarioService } from 'src/app/services/usuario.service';
 import Swal from 'sweetalert2';
 
-declare const google: any;
+// declare const google: any;
 
 @Component({
   selector: 'app-login',
@@ -26,11 +26,35 @@ export class LoginComponent implements OnInit {
   constructor(
     private router: Router,
     private fb: FormBuilder,
-    private usuarioService: UsuarioService
+    private usuarioService: UsuarioService,
+    private ngzone: NgZone
   ) {}
 
   ngOnInit(): void {
-    this.cargarBoton();
+    // @ts-ignore
+    google.accounts.id.initialize({
+      client_id:
+        '836974771332-1jnh1i39bi2ujf9e1qfvpddmtnhg977e.apps.googleusercontent.com',
+      callback: this.handleCredentialResponse.bind(this),
+      auto_select: false,
+      cancel_on_tap_outside: true,
+    });
+    // @ts-ignore
+    google.accounts.id.renderButton(
+      // @ts-ignore
+      document.getElementById('google-button'),
+      { theme: 'outline', size: 'large', width: '100%' }
+    );
+    // @ts-ignore
+    // google.accounts.id.prompt((notification: PromptMomentNotification) => {});
+  }
+
+  async handleCredentialResponse(response: any) {
+    this.usuarioService.loginGoogle(response.credential).subscribe((resp) => {
+      this.ngzone.run(() => {
+        this.router.navigateByUrl('/');
+      });
+    });
   }
 
   login() {
@@ -50,28 +74,6 @@ export class LoginComponent implements OnInit {
       error: (err) => {
         Swal.fire('Error', err.error.msg, 'error');
       },
-    });
-  }
-
-  cargarBoton() {
-    google.accounts.id.initialize({
-      client_id:
-        '836974771332-1jnh1i39bi2ujf9e1qfvpddmtnhg977e.apps.googleusercontent.com',
-      callback: (res: any) => {
-        this.devuelveToken(res);
-      },
-    });
-
-    google.accounts.id.renderButton(document.getElementById('buttonDiv'), {
-      theme: 'outline',
-      size: 'large',
-    });
-    // google.accounts.id.prompt();
-  }
-
-  devuelveToken(algo: any) {
-    this.usuarioService.loginGoogle(algo.credential).subscribe((resp) => {
-      this.router.navigateByUrl('/');
     });
   }
 }
